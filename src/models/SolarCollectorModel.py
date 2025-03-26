@@ -3,6 +3,8 @@ import pandas as pd
 
 
 class SolarCollectorSpecs:
+    FR = 0.95
+
     def __init__(
         self,
         Ut: float = 2.889,
@@ -43,3 +45,63 @@ class SolarCollectorSpecs:
         })
 
         return SolarCollectorSpecs(Ut=df["direct"], Ub=df["diffuse"], Us=df["total"])
+
+    def calc_total_radiation(self, Ib1, Id1, rb, rd, rr):
+        return Ib1 * rb + Id1 * rd + (Ib1 + Id1) * rr
+
+    def calc_effective_intensity(self, Ib1, Id1, rb, rd, rr, tau_alfa_b, tau_alfa_d):
+        return Ib1 * rb * tau_alfa_b + (Id1 * rd + (Ib1 + Id1) * rr) * tau_alfa_d
+
+    def calc_equilibrium_temp(self, S, Ta1):
+        return (S / self.UL) + Ta1
+
+    def calc_thermal_power(self, IT, tau_alfa):
+        return IT * tau_alfa * self.area
+
+    def calc_losses(self, Tpm, Ta1):
+        Qt = self.Ut * self.area * (Tpm - Ta1)
+        Qs = self.Us * self.area * (Tpm - Ta1)
+        Qb = self.Ub * self.area * (Tpm - Ta1)
+        return Qt + Qs + Qb
+
+    def calc_useful_energy(self, QI, Ql):
+        return QI - Ql
+
+    def calc_output_temp(self, QU, TFI, Massa, Cp):
+        return TFI + ((QU / Massa) * Cp)
+
+    def calc_efficiency(self, QU, IT):
+        return QU / (self.area * IT)
+
+    def calc_productivity(self, QU, Cp, Massa, Twater2, Twater):
+        return QU / (Cp * Massa * (Twater2 - Twater))
+
+    def calculate_hourly_performance(
+            self,
+            Ib1, Id1, rb, rd, rr,
+            tau_alfa_b, tau_alfa_d,
+            tau_alfa,
+            Ta1, TFI, Cp, Massa,
+            Twater, Twater2
+    ):
+        IT = self.calc_total_radiation(Ib1, Id1, rb, rd, rr)
+        S = self.calc_effective_intensity(Ib1, Id1, rb, rd, rr, tau_alfa_b, tau_alfa_d)
+        Tpm = self.calc_equilibrium_temp(S, Ta1)
+        QI = self.calc_thermal_power(IT, tau_alfa)
+        Ql = self.calc_losses(Tpm, Ta1)
+        QU = self.calc_useful_energy(QI, Ql)
+        TFO = self.calc_output_temp(QU, TFI, Massa, Cp)
+        KPD_hourly = self.calc_efficiency(QU, IT)
+        g_collector = self.calc_productivity(QU, Cp, Massa, Twater2, Twater)
+
+        return {
+            "IT": IT,
+            "S": S,
+            "Tpm": Tpm,
+            "QI": QI,
+            "Ql": Ql,
+            "QU": QU,
+            "TFO": TFO,
+            "KPD_hourly": KPD_hourly,
+            "g_collector": g_collector
+        }
