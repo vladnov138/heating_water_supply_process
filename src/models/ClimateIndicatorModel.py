@@ -12,16 +12,6 @@ class ClimateIndicatorsModel:
         self.Ta = Ta
         self.sunshine_hours = sunshine_hours
 
-    @staticmethod
-    def read_hourly_data(file_path: str) -> pd.DataFrame:
-        df = pd.read_excel(file_path)
-        df = df.rename(columns={
-            'Прямая, Вт/м2': 'direct',
-            'Рассеянная, Вт/м2': 'diffuse',
-            'Суммарная, Вт/м2': 'total',
-            'Температура, Град. Ц.': 'temperature'
-        })
-        return df
 
     @staticmethod
     def calculate_daily_indicators(hourly_df: pd.DataFrame, radiation_threshold: float = 50) -> list:
