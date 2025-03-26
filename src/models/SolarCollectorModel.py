@@ -46,35 +46,51 @@ class SolarCollectorSpecs:
 
         return SolarCollectorSpecs(Ut=df["direct"], Ub=df["diffuse"], Us=df["total"])
 
+    # Суммарная радиация на СК, Вт / м2
     def calc_total_radiation(self, Ib1, Id1, rb, rd, rr):
         return Ib1 * rb + Id1 * rd + (Ib1 + Id1) * rr
 
+    # Приведенная интенсивность, Вт / м2
     def calc_effective_intensity(self, Ib1, Id1, rb, rd, rr, tau_alfa_b, tau_alfa_d):
         return Ib1 * rb * tau_alfa_b + (Id1 * rd + (Ib1 + Id1) * rr) * tau_alfa_d
 
+    # Равновесная температура, Град. Ц.
     def calc_equilibrium_temp(self, S, Ta1):
         return (S / self.UL) + Ta1
 
+    # Тепловая мощность коллектора, Вт
     def calc_thermal_power(self, IT, tau_alfa):
         return IT * tau_alfa * self.area
 
+    # Скорость потерь тепла
     def calc_losses(self, Tpm, Ta1):
         Qt = self.Ut * self.area * (Tpm - Ta1)
         Qs = self.Us * self.area * (Tpm - Ta1)
         Qb = self.Ub * self.area * (Tpm - Ta1)
         return Qt + Qs + Qb
 
+    # Полезная энергия
     def calc_useful_energy(self, QI, Ql):
         return QI - Ql
 
+    # Производительность коллектора (литры в час)
     def calc_output_temp(self, QU, TFI, Massa, Cp):
         return TFI + ((QU / Massa) * Cp)
 
+    # Температура теплоносителя на выходе из коллектора
     def calc_efficiency(self, QU, IT):
         return QU / (self.area * IT)
 
+    # Расчет бака накопителя
     def calc_productivity(self, QU, Cp, Massa, Twater2, Twater):
         return QU / (Cp * Massa * (Twater2 - Twater))
+
+    # Энергия, поступающая от солнечного коллектора:
+    def calc_tin(self, QU, TFI, Massa, Cp):
+        return TFI + (QU / (Massa * Cp))
+
+    def calc_qin(self, Tin, Ttank, Massa, Cp):
+        return Massa * Cp * (Tin - Ttank)
 
     def calculate_hourly_performance(
             self,
@@ -82,7 +98,8 @@ class SolarCollectorSpecs:
             tau_alfa_b, tau_alfa_d,
             tau_alfa,
             Ta1, TFI, Cp, Massa,
-            Twater, Twater2
+            Twater, Twater2,
+            Ttank  # температура воды в баке
     ):
         IT = self.calc_total_radiation(Ib1, Id1, rb, rd, rr)
         S = self.calc_effective_intensity(Ib1, Id1, rb, rd, rr, tau_alfa_b, tau_alfa_d)
@@ -94,6 +111,9 @@ class SolarCollectorSpecs:
         KPD_hourly = self.calc_efficiency(QU, IT)
         g_collector = self.calc_productivity(QU, Cp, Massa, Twater2, Twater)
 
+        Tin = self.calc_tin(QU, TFI, Massa, Cp)
+        Qin = self.calc_qin(Tin, Ttank, Massa, Cp)
+
         return {
             "IT": IT,
             "S": S,
@@ -103,5 +123,7 @@ class SolarCollectorSpecs:
             "QU": QU,
             "TFO": TFO,
             "KPD_hourly": KPD_hourly,
-            "g_collector": g_collector
+            "g_collector": g_collector,
+            "Tin": Tin,
+            "Qin": Qin
         }
