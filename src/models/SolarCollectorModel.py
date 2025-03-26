@@ -77,11 +77,11 @@ class SolarCollectorSpecs:
     def calc_output_temp(self, QU, TFI, Massa, Cp):
         return TFI + ((QU / Massa) * Cp)
 
-    # Температура теплоносителя на выходе из коллектора
+    # KPD_hourly Температура теплоносителя на выходе из коллектора
     def calc_efficiency(self, QU, IT):
         return QU / (self.area * IT)
 
-    # Расчет бака накопителя
+    # V_ac Расчет бака накопителя
     def calc_productivity(self, QU, Cp, Massa, Twater2, Twater):
         return QU / (Cp * Massa * (Twater2 - Twater))
 
@@ -91,6 +91,7 @@ class SolarCollectorSpecs:
 
     def calc_qin(self, Tin, Ttank, Massa, Cp):
         return Massa * Cp * (Tin - Ttank)
+
 
     def calculate_hourly_performance(
             self,
@@ -114,6 +115,7 @@ class SolarCollectorSpecs:
         Tin = self.calc_tin(QU, TFI, Massa, Cp)
         Qin = self.calc_qin(Tin, Ttank, Massa, Cp)
 
+
         return {
             "IT": IT,
             "S": S,
@@ -125,5 +127,47 @@ class SolarCollectorSpecs:
             "KPD_hourly": KPD_hourly,
             "g_collector": g_collector,
             "Tin": Tin,
-            "Qin": Qin
+            "Qin": Qin,
+        }
+
+
+    def simulate_hour(
+            self,
+            Ib1, Id1, rb, rd, rr,
+            tau_alfa_b, tau_alfa_d,
+            tau_alfa,
+            Ta1, TFI, Cp, Massa,
+            Twater, Twater2,
+            Ttank,
+            heat_storage_tank,  # объект HeatStorageTank
+            V_load_liters,  # объем забора воды за час
+            T_water  # желаемая температура потребителя
+    ):
+        # 1. Расчёты от коллектора
+        performance = self.calculate_hourly_performance(
+            Ib1, Id1, rb, rd, rr,
+            tau_alfa_b, tau_alfa_d,
+            tau_alfa,
+            Ta1, TFI, Cp, Massa,
+            Twater, Twater2,
+            Ttank
+        )
+
+        QI = performance["QI"]
+
+        # 2. Расчёты по баку
+        Ttank_new, Q_loss, Q_load = heat_storage_tank.update_temperature(
+            T_tank=Ttank,
+            QI=QI,
+            T_water=T_water,
+            T_ambient=Ta1,
+            V_load_liters=V_load_liters
+        )
+
+        # 3. Возвращаем объединённый результат
+        return {
+            **performance,
+            "Ttank_new": Ttank_new,
+            "Q_loss": Q_loss,
+            "Q_load": Q_load
         }
