@@ -46,7 +46,7 @@ class SolarCollectorSpecs:
 
         return SolarCollectorSpecs(Ut=df["direct"], Ub=df["diffuse"], Us=df["total"])
 
-    # Суммарная радиация на СК, Вт / м2
+    # IT Суммарная радиация на СК, Вт / м2
     def calc_total_radiation(self, Ib1, Id1, rb, rd, rr):
         return Ib1 * rb + Id1 * rd + (Ib1 + Id1) * rr
 
@@ -54,7 +54,7 @@ class SolarCollectorSpecs:
     def calc_effective_intensity(self, Ib1, Id1, rb, rd, rr, tau_alfa_b, tau_alfa_d):
         return Ib1 * rb * tau_alfa_b + (Id1 * rd + (Ib1 + Id1) * rr) * tau_alfa_d
 
-    # Равновесная температура, Град. Ц.
+    # Tpm Равновесная температура, Град. Ц.
     def calc_equilibrium_temp(self, S, Ta1):
         return (S / self.UL) + Ta1
 
@@ -62,18 +62,18 @@ class SolarCollectorSpecs:
     def calc_thermal_power(self, IT, tau_alfa):
         return IT * tau_alfa * self.area
 
-    # Скорость потерь тепла
+    # QI Скорость потерь тепла
     def calc_losses(self, Tpm, Ta1):
         Qt = self.Ut * self.area * (Tpm - Ta1)
         Qs = self.Us * self.area * (Tpm - Ta1)
         Qb = self.Ub * self.area * (Tpm - Ta1)
         return Qt + Qs + Qb
 
-    # Полезная энергия
+    # QU Полезная энергия
     def calc_useful_energy(self, QI, Ql):
         return QI - Ql
 
-    # Производительность коллектора (литры в час)
+    # TFO Производительность коллектора (литры в час)
     def calc_output_temp(self, QU, TFI, Massa, Cp):
         return TFI + ((QU / Massa) * Cp)
 
