@@ -68,8 +68,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.minQUSpin = QtWidgets.QDoubleSpinBox()
         self.minQUSpin.setRange(0, 100000)
-        self.minQUSpin.setValue(10000)
+        self.minQUSpin.setValue(50)
         paramLayout.addRow("min_QU_required:", self.minQUSpin)
+
+        self.hoursSpin = QtWidgets.QDoubleSpinBox()
+        self.hoursSpin.setRange(0, 24)
+        self.hoursSpin.setValue(10)
+        paramLayout.addRow("hours:", self.hoursSpin)
 
         self.optimizationModeCombo = QtWidgets.QComboBox()
         self.optimizationModeCombo.addItems(["cost", "energy"])
@@ -129,7 +134,7 @@ class MainWindow(QtWidgets.QMainWindow):
         Qloss_hours = []
         Qload_hours = []
         Ttank_sim = Ttank
-        hours = np.arange(10)
+        hours = np.arange(self.hoursSpin.value())
         for _ in hours:
             res = self.specs.simulate_hour(
                 Ib, Id, rb, rd, rr,
@@ -157,8 +162,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # Построение графиков:
         # 1. Верхний левый: QI и QU
         ax0 = self.ax[0, 0]
-        ax0.plot(hours, QI_hours)
-        ax0.plot(hours, QU_hours)
+        ax0.plot(hours, QI_hours, label="QI")
+        ax0.plot(hours, QU_hours, label="QU")
+        ax0.legend()
         ax0.set_xlabel("Час")
         ax0.set_ylabel("Вт")
         ax0.set_title("Поступающая и полезная энергия")
@@ -172,8 +178,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # 3. Нижний левый: Потери бака и потребление
         ax2 = self.ax[1, 0]
-        ax2.plot(hours, Qloss_hours)
-        ax2.plot(hours, Qload_hours)
+        ax2.plot(hours, Qloss_hours, label="Потери")
+        ax2.plot(hours, Qload_hours, label="Потребление")
+        ax2.legend()
         ax2.set_xlabel("Час")
         ax2.set_ylabel("Вт")
         ax2.set_title("Потери и потребление")
@@ -229,9 +236,9 @@ def optimize_collector_area_scipy(solar_spec: SolarCollectorSpecs,
     # QU = A * (IT * tau_alfa - S)
     coeff = IT * Ta - S
 
-    # Границы для площади коллектора (от 2 до 10 м²)
+    # Границы для площади коллектора (от 2 до 100 м²)
     min_area = 2
-    max_area = 10
+    max_area = 100
     bounds = [(min_area, max_area)]
 
     if objective_type == 'cost':
