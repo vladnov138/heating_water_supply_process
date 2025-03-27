@@ -68,7 +68,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.minQUSpin = QtWidgets.QDoubleSpinBox()
         self.minQUSpin.setRange(0, 100000)
-        self.minQUSpin.setValue(50)
+        self.minQUSpin.setValue(100)
         paramLayout.addRow("min_QU_required:", self.minQUSpin)
 
         self.hoursSpin = QtWidgets.QDoubleSpinBox()
