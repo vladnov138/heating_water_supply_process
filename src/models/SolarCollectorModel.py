@@ -73,6 +73,14 @@ class SolarCollectorSpecs:
     def calc_useful_energy(self, QI, Ql):
         return QI - Ql
 
+    def calc_useful_energy_by_area(self, IT, S, area=None):
+        # Вычисляет полезную энергию по формуле:
+        # QU = A * (IT * tau_alfa - S),
+        if area is None:
+            area = self.area
+        tau_alfa = self.transmittance * self.absorptance
+        return area * (IT * tau_alfa - S)
+
     # TFO Производительность коллектора (литры в час)
     def calc_output_temp(self, QU, TFI, Massa, Cp):
         return TFI + ((QU / Massa) * Cp)
