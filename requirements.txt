@@ -3,3 +3,4 @@ openpyxl
 pyqt5
 scipy
 matplotlib
+sqlalchemy
