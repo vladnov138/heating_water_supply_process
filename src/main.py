@@ -72,7 +72,7 @@ class MainWindow(QtWidgets.QMainWindow):
         paramLayout.addRow("min_QU_required:", self.minQUSpin)
 
         self.hoursSpin = QtWidgets.QDoubleSpinBox()
-        self.hoursSpin.setRange(0, 24)
+        self.hoursSpin.setRange(0, 8760)
         self.hoursSpin.setValue(10)
         paramLayout.addRow("hours:", self.hoursSpin)
 
@@ -100,6 +100,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Инициализация моделей
         self.specs = SolarCollectorSpecs()
+        self.specs_coef = SolarCollectorSpecs(area=self.specs.area * 1.7147)
         self.tank = HeatStorageTank()
 
         self.updateSimulation()
@@ -128,12 +129,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Симуляция динамики температуры бака за 10 часов
         temps = []
+        temps_coef = []
         kpd_hours = []
+        kpd_hours_coef = []
         QI_hours = []
         QU_hours = []
         Qloss_hours = []
         Qload_hours = []
         Ttank_sim = Ttank
+        Ttank_sim_coef = Ttank
         hours = np.arange(self.hoursSpin.value())
         for _ in hours:
             res = self.specs.simulate_hour(
@@ -146,10 +150,23 @@ class MainWindow(QtWidgets.QMainWindow):
                 V_load_liters=V_load_liters,
                 T_water=T_water
             )
+            res_coef = self.specs_coef.simulate_hour(
+                Ib, Id, rb, rd, rr,
+                tau_alfa_b, tau_alfa_d, 0.92,
+                Ta, TFI, Cp, Massa,
+                Twater, Twater2,
+                Ttank_sim_coef,
+                heat_storage_tank=self.tank,
+                V_load_liters=V_load_liters,
+                T_water=T_water
+            )
 
             Ttank_sim = res["Ttank_new"]
+            Ttank_sim_coef = res_coef["Ttank_new"]
             temps.append(Ttank_sim)
+            temps_coef.append(Ttank_sim_coef)
             kpd_hours.append(res["KPD_hourly"])
+            kpd_hours_coef.append(res_coef["KPD_hourly"])
             QI_hours.append(res["QI"])
             QU_hours.append(res["QU"])
             Qloss_hours.append(res["Q_loss"])
@@ -163,6 +180,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # 1. Верхний левый: QI и QU
         ax0 = self.ax[0, 0]
         ax0.plot(hours, QI_hours, label="QI")
+        ax0.plot(hours, [qi * 0.9 for qi in QI_hours], label="QI поправ.")
         ax0.plot(hours, QU_hours, label="QU")
         ax0.legend()
         ax0.set_xlabel("Час")
@@ -171,7 +189,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # 2. Верхний правый: КПД
         ax1 = self.ax[0, 1]
-        ax1.plot(hours, [KPD * 100 for KPD in kpd_hours])
+        ax1.plot(hours, [KPD * 100 for KPD in kpd_hours], label="КПД")
+        ax1.plot(hours, [KPD * 100 for KPD in kpd_hours_coef], label="КПД поправ.")
+        ax1.legend()
         ax1.set_xlabel("Час")
         ax1.set_ylabel("%")
         ax1.set_title("КПД (%)")
@@ -179,16 +199,19 @@ class MainWindow(QtWidgets.QMainWindow):
         # 3. Нижний левый: Потери бака и потребление
         ax2 = self.ax[1, 0]
         ax2.plot(hours, Qloss_hours, label="Потери")
+        ax2.plot(hours, [ql * 1.06 for ql in Qloss_hours], label="Потери поправ.")
         ax2.plot(hours, Qload_hours, label="Потребление")
         ax2.legend()
         ax2.set_xlabel("Час")
         ax2.set_ylabel("Вт")
         ax2.set_title("Потери и потребление")
 
-        # 4. Нижний правый: Температура бака за 10 часов
+        # 4. Нижний правый: Температура бака
         ax3 = self.ax[1, 1]
-        ax3.plot(hours, temps, marker="o", color="magenta")
+        ax3.plot(hours, temps, marker="o", color="magenta", label="Температура")
+        ax3.plot(hours, temps_coef, marker="o", color="yellow", label="Температура поправ.")
         ax3.set_title("Температура бака")
+        ax3.legend()
         ax3.set_xlabel("Час")
         ax3.set_ylabel("Темп. (°C)")
 
